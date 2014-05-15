@@ -6,6 +6,7 @@
 		private $folder = '/cache/';
 		private $maxAge = 30;
 		private $toCache = '';
+		private $cacheHistory = 2;
 		
 		//constructors
 		function __construct($arr = array()) {
@@ -17,6 +18,8 @@
 				$this->folder = $arr['tmpfile'];		//the directory containing the cache files				
 			if(array_key_exists('toCache', $arr))
 				$this->toCache = $arr['toCache'];		//the file that creates the cache content for us				
+			if(array_key_exists('cacheHistory', $arr))
+				$this->cacheHistory = $arr['cacheHistory'];		//the file that creates the cache content for us				
 		} 
 
 		// method declaration
@@ -83,6 +86,8 @@
 			include( $this->toCache ); 
 			$content = ob_get_contents();
 			ob_end_clean(); 
+			ftruncate($fp, 0);
+			fwrite($fp, $content);
 		
 			return;
 		}
@@ -94,7 +99,7 @@
 			// remove files from the oldest to newest until there's only a couple left
 			$rfiles = array_reverse($files, true);
 			foreach($rfiles as $key=>$val){
-				if(count($rfiles) <= 3) {
+				if(count($rfiles) <= $this->cacheHistory) {
 					break;
 				}
 				unset($rfiles[$key]);
@@ -145,7 +150,7 @@
 			$mtime = filemtime(dirname(__FILE__) . $this->folder . $file);
 			$diff =  $time - $mtime; 
 			
-			return ($this->maxAge >= 0 || $diff >= $this->maxAge);		
+			return ($this->maxAge >= 0 && $diff >= $this->maxAge);		
 		}
 		
 	}

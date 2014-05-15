@@ -17,13 +17,13 @@
 			<?php
 				//load this area with the contents of the cache file from the manager.
 				
-				$mgr = new CacheManager();
+				$mgr = new CacheManager(['toCache'=>'sampleCacheable.php', 'timeToExpire'=>10]);
 				
-				for($ctr = 0; $ctr < 45; $ctr++) {
+				for($ctr = 0; $ctr < 35; $ctr++) {
 					$f = $mgr->retrieveCache();
 					$filecontents = file_get_contents(dirname(__FILE__) . "/cache/" . $f);
-					echo "response received at: " . time() . "<br />";
-//					echo $ctr . " --- <br />" . $filecontents . "<br />";
+					echo "response " . $f . " received at: " . time() . "<br />";
+					echo $ctr . " --- <br />" . $filecontents . "<br />";
 					sleep(1);
 				}
 			?>
