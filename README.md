@@ -9,7 +9,7 @@ PHP was chosen for this project since it does not have an effective singleton cl
 
 Use of this class requires a filesystem compatible with PHPs flock command.  
 
-### Usage
+### Usage:
 To create the CacheManager object, up to five parameters can be given in the form of an associative array: 
 - toCache (the php file that will create the contents of the cache),
 - timeToExpire (the max age of the cache before the next request will rebuild the cache, default: 30s),
@@ -19,6 +19,21 @@ To create the CacheManager object, up to five parameters can be given in the for
 
 To create a cache that has no time expiration (i.e. cache has to be forced to expire), set timeToExpire to a value less than 0.  e.g.
 ```php
-new CacheManager(['timeToExpire'=> -1, 'toCache'=>'path/to/whatIwanttocache.php']);
+$cmgr = new CacheManager(['timeToExpire'=> -1, 'toCache'=>'path/to/whatIwanttocache.php']);
 ```
 Setting a timeToExpire equal to zero is valid, but will attempt to rebuild cache on every request (will only retrieve older cache while a new cache is currently being built).  
+
+The following commands are made public from this class:
+- retrieveCache(),
+- forceExpiration().
+
+The following code will rebuild the cache if the most recent available cache is older than the maximum cache lifespan, as previously defined, only if the cache is not currently rebuilding due to a previous request.
+If the cache is already in the process of being updated, or if the current cache is still fresh enough, then the name of the most recent completed cache file is returned.
+```php 
+	$file = $cmgr->retrieveCache();
+```
+
+The following code snippet will force the expiration of the current cache file, and return the name of the new cache file once completed.  This is useful for caches that have unlimited expiration times.
+```php 
+	$file = $cmgr->forceExpiration();
+```
