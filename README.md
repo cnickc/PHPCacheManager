@@ -11,7 +11,7 @@ PHP was chosen for this project since it does not have an effective singleton cl
 
 Use of this class requires a filesystem compatible with PHPs flock command.  
 
-To create the CacheManager object, up to four parameters can be given in the form of an associative array: toCache (the php file that will create the contents of the cache), timeToExpire (the max age of the cache before the next request will rebuild the cache), cachedir (the location of the cache of current interest.  Each cache should have its own folder under the current structure), tmpfile (the name to use for the temporary working file).
+To create the CacheManager object, up to five parameters can be given in the form of an associative array: toCache (the php file that will create the contents of the cache), timeToExpire (the max age of the cache before the next request will rebuild the cache, default: 30s), cachedir (the location of the cache of current interest.  Each cache should have its own folder under the current structure), tmpfile (the name to use for the temporary working file), cacheHistory (the number of cache files to keep around, in order from most recent, since sometimes it's useful to see the history of your cache files, default: 2).
 
 To create a cache that has no time expiration (i.e. cache has to be forced to expire), set timeToExpire to a value less than 0.  e.g.
 new CacheManager(['timeToExpire'=> -1, 'toCache'=>'path/to/whatIwanttocache.php']);
