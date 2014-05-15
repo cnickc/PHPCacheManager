@@ -5,15 +5,18 @@
 		private $tmpCacheFile = 'tmp.cache';
 		private $folder = '/cache/';
 		private $maxAge = 30;
+		private $toCache = '';
 		
 		//constructors
 		function __construct($arr = array()) {
 			if(array_key_exists('timeToExpire', $arr))
-				$this->maxAge = $timeToExpire;	//the maximum lifetime of a cache file in seconds
+				$this->maxAge = $arr['timeToExpire'];	//the maximum lifetime of a cache file in seconds
 			if(array_key_exists('cachedir', $arr))
-				$this->tmpCacheFile = $tmpfile;	//the name of the tmp working file
+				$this->tmpCacheFile = $arr['cachedir'];	//the name of the tmp working file
 			if(array_key_exists('tmpfile', $arr))
-				$this->folder = $cachedir;		//the directory containing the cache files				
+				$this->folder = $arr['tmpfile'];		//the directory containing the cache files				
+			if(array_key_exists('toCache', $arr))
+				$this->toCache = $arr['toCache'];		//the file that creates the cache content for us				
 		} 
 
 		// method declaration
@@ -29,13 +32,10 @@
 
 			if (!flock($fp, LOCK_EX | LOCK_NB)) {  // acquire an exclusive lock
 				// Someone else is already updating the cache file. Nothing more to do here.
-				echo "file is already locked: " . time() . "<br />";
 				fclose($fp);			
 				return $file;	//return old file.  Will return null if no suitable file exists.
 			} 
 			
-			echo "exclusive lock acquired: " . time();
-
 			// Exclusive lock acquired.  This means its up to me to write a new cache file
 			$this->writeCacheFile($fp);
 			
@@ -48,21 +48,42 @@
 			fclose($fp);			// close the file
 			$this->removeOldCache();
 			
-			echo "exclusive lock released: " . time() . "<br />";
 			return $name;
 		}
 		
 		public function forceExpiration() {
+			//grab current cache in case new cache cannot be built
+			$file = $this->retrieveCacheFile();
 
+			//Attempt to rebuild cache.  
+			$fp = fopen(dirname(__FILE__) . $this->folder . $this->tmpCacheFile, "r+");
+
+			if (!flock($fp, LOCK_EX | LOCK_NB)) {  // acquire an exclusive lock
+				// Someone else is already updating the cache file. Nothing more to do here.
+				fclose($fp);			
+				return $file;	//return old file.  Will return null if no suitable file exists.
+			} 
+			
+			// Exclusive lock acquired.  This means its up to me to write a new cache file
+			$this->writeCacheFile($fp);
+			
+			// rename used instead of copy for atomicity reasons
+			touch (dirname(__FILE__) . $this->folder . $this->tmpCacheFile);	//touch before to set modify time
+			$name = uniqid('c') . '.cache';
+			rename(dirname(__FILE__) . $this->folder . $this->tmpCacheFile, dirname(__FILE__) . $this->folder . $name);
+			touch (dirname(__FILE__) . $this->folder . $this->tmpCacheFile);	//touch after to create new tmp file
+			flock($fp, LOCK_UN);    // release the lock
+			fclose($fp);			// close the file
+			$this->removeOldCache();
+			return $name;
 		}
 		
 		private function writeCacheFile($fp){
-			//this needs work
-			ftruncate($fp, 0);
-			date_default_timezone_set('UTC');
-			fwrite($fp, 'This file was started at: ' . date('Ydm-His'));
-			sleep(10);
-			fwrite($fp, 'This file was completed at: ' . date('Ydm-His'));
+			ob_start(); 
+			include( $this->toCache ); 
+			$content = ob_get_contents();
+			ob_end_clean(); 
+		
 			return;
 		}
 		
@@ -124,7 +145,7 @@
 			$mtime = filemtime(dirname(__FILE__) . $this->folder . $file);
 			$diff =  $time - $mtime; 
 			
-			return ($diff >= $this->maxAge);		
+			return ($this->maxAge >= 0 || $diff >= $this->maxAge);		
 		}
 		
 	}
